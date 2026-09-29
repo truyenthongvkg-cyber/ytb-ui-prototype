@@ -15,7 +15,7 @@ const widgetHtml = readFileSync(new URL("./public/widget.html", import.meta.url)
 function createMcpServer() {
   const server = new McpServer({
     name: "ytb-followup-test",
-    version: "0.1.0",
+    version: "0.2.0",
   });
 
   registerAppResource(
@@ -42,14 +42,20 @@ function createMcpServer() {
     server,
     "show_ytb_followup_test",
     {
-      title: "Show YTB follow-up test",
+      title: "Show YTB metadata copy test",
       description:
-        "Render a minimal YTB test widget with one metadata field and a button that sends a follow-up message asking ChatGPT to create exactly one thumbnail.",
+        "Render a YTB metadata widget with four separate fields and real copy buttons. This prototype tests metadata persistence and copy behavior only.",
       inputSchema: {
-        testText: z.string().optional(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        hashtags: z.string().optional(),
+        tags: z.string().optional(),
       },
       outputSchema: {
-        testText: z.string(),
+        title: z.string(),
+        description: z.string(),
+        hashtags: z.string(),
+        tags: z.string(),
       },
       annotations: {
         readOnlyHint: true,
@@ -62,14 +68,23 @@ function createMcpServer() {
         "openai/outputTemplate": WIDGET_URI,
       },
     },
-    async ({ testText }) => ({
+    async ({ title, description, hashtags, tags }) => ({
       structuredContent: {
-        testText: testText?.trim() || "Metadata test stays visible here.",
+        title: title?.trim() || "10 True Crime Cases That Shocked America",
+        description:
+          description?.trim() ||
+          "This documentary examines ten major true crime cases from across the United States, focusing on verified case backgrounds, investigations, court records, and the lasting impact on the communities involved.",
+        hashtags:
+          hashtags?.trim() ||
+          "#TrueCrime #CrimeDocumentary #AmericanCrime #CriminalCases #Documentary",
+        tags:
+          tags?.trim() ||
+          "true crime, crime documentary, American crime, criminal cases, case files, true crime documentary, crime stories, criminal investigation, documentary, US crime",
       },
       content: [
         {
           type: "text",
-          text: "Rendered the YTB follow-up prototype widget.",
+          text: "Rendered the YTB metadata copy prototype.",
         },
       ],
     })
