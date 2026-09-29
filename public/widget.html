@@ -3,75 +3,136 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>YTB Auto Follow-up Test</title>
+  <title>YTB Metadata Copy Test</title>
   <style>
     :root { color-scheme: light dark; }
-    body { margin: 0; font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
     .wrap { padding: 14px; }
-    .label { font-weight: 700; margin-bottom: 6px; }
-    .field { border: 1px solid color-mix(in srgb, currentColor 20%, transparent); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; white-space: pre-wrap; }
-    .status { opacity: .72; min-height: 1.45em; }
+    .row {
+      display: grid;
+      grid-template-columns: minmax(110px, 150px) 1fr auto;
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 10px;
+    }
+    .label {
+      font-weight: 700;
+      padding-top: 10px;
+    }
+    .field {
+      border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+      border-radius: 10px;
+      padding: 10px 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 42px;
+    }
+    .field.large { min-height: 92px; }
+    button {
+      border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      min-width: 72px;
+    }
+    .status {
+      margin-top: 6px;
+      opacity: .72;
+      min-height: 1.45em;
+    }
+    @media (max-width: 640px) {
+      .row { grid-template-columns: 1fr auto; }
+      .label { grid-column: 1 / -1; padding-top: 0; }
+    }
   </style>
 </head>
 <body>
   <main class="wrap">
-    <div class="label">Trường test</div>
-    <div class="field" id="testText">Metadata test stays visible here.</div>
-    <div class="status" id="status">Đang tự động yêu cầu ChatGPT tạo thumbnail…</div>
+    <div class="row">
+      <div class="label">Tiêu đề mới:</div>
+      <div class="field" id="title"></div>
+      <button type="button" data-copy="title">Copy</button>
+    </div>
+
+    <div class="row">
+      <div class="label">Mô tả mới:</div>
+      <div class="field large" id="description"></div>
+      <button type="button" data-copy="description">Copy</button>
+    </div>
+
+    <div class="row">
+      <div class="label">Hashtags:</div>
+      <div class="field" id="hashtags"></div>
+      <button type="button" data-copy="hashtags">Copy</button>
+    </div>
+
+    <div class="row">
+      <div class="label">Tags:</div>
+      <div class="field large" id="tags"></div>
+      <button type="button" data-copy="tags">Copy</button>
+    </div>
+
+    <div class="status" id="status">Kiểm tra 4 nút Copy. Prototype này chưa tự tạo thumbnail.</div>
   </main>
 
   <script>
-    const $ = (id) => document.getElementById(id);
-    const status = $("status");
+    const defaults = {
+      title: "10 True Crime Cases That Shocked America",
+      description: "This documentary examines ten major true crime cases from across the United States, focusing on verified case backgrounds, investigations, court records, and the lasting impact on the communities involved.",
+      hashtags: "#TrueCrime #CrimeDocumentary #AmericanCrime #CriminalCases #Documentary",
+      tags: "true crime, crime documentary, American crime, criminal cases, case files, true crime documentary, crime stories, criminal investigation, documentary, US crime"
+    };
 
-    const toolOutput = window.openai?.toolOutput;
-    if (toolOutput?.testText) $("testText").textContent = toolOutput.testText;
+    const output = window.openai?.toolOutput || {};
+    const saved = window.openai?.widgetState || {};
+    const data = {
+      title: saved.title || output.title || defaults.title,
+      description: saved.description || output.description || defaults.description,
+      hashtags: saved.hashtags || output.hashtags || defaults.hashtags,
+      tags: saved.tags || output.tags || defaults.tags
+    };
 
-    const saved = window.openai?.widgetState;
-    if (saved?.testText) $("testText").textContent = saved.testText;
-
-    const currentText = $("testText").textContent;
-    const alreadySent = Boolean(saved?.autoSent);
-
-    async function autoSend() {
-      if (alreadySent) {
-        status.textContent = "Yêu cầu tạo thumbnail đã được gửi.";
-        return;
-      }
-
-      if (!window.openai?.sendFollowUpMessage) {
-        status.textContent = "Host này không hỗ trợ auto follow-up.";
-        return;
-      }
-
-      window.openai?.setWidgetState?.({
-        testText: currentText,
-        autoSent: true
-      });
-
-      const message = [
-        "Generate exactly ONE standalone 16:9 YouTube thumbnail using ChatGPT's built-in Image Generation.",
-        "This is only a capability test, so create a simple documentary-style thumbnail with the visible English text: YTB TEST.",
-        "Do not restate metadata. Do not create a UI mockup, metadata panel, copy buttons, browser frame, or multiple alternatives.",
-        "Return only the generated thumbnail image."
-      ].join(" ");
-
-      try {
-        await window.openai.sendFollowUpMessage({
-          prompt: message,
-          scrollToBottom: true
-        });
-        status.textContent = "Đã tự động gửi yêu cầu tạo thumbnail.";
-      } catch (error) {
-        window.openai?.setWidgetState?.({
-          testText: currentText,
-          autoSent: false
-        });
-        status.textContent = `Không tự gửi được: ${error?.message || error}`;
-      }
+    for (const [key, value] of Object.entries(data)) {
+      document.getElementById(key).textContent = value;
     }
 
-    setTimeout(autoSend, 250);
+    window.openai?.setWidgetState?.(data);
+
+    async function copyText(value) {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        return;
+      }
+      const area = document.createElement("textarea");
+      area.value = value;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+
+    document.querySelectorAll("[data-copy]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const key = button.dataset.copy;
+        const original = button.textContent;
+        try {
+          await copyText(data[key]);
+          button.textContent = "Đã copy";
+          setTimeout(() => { button.textContent = original; }, 1000);
+        } catch (error) {
+          document.getElementById("status").textContent =
+            "Không copy được: " + (error?.message || error);
+        }
+      });
+    });
   </script>
 </body>
 </html>
