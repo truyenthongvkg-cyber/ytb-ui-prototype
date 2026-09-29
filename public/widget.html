@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YTB Follow-up Test</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .wrap { padding: 14px; }
+    .label { font-weight: 700; margin-bottom: 6px; }
+    .field { border: 1px solid color-mix(in srgb, currentColor 20%, transparent); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; white-space: pre-wrap; }
+    button { border: 0; border-radius: 10px; padding: 10px 14px; font: inherit; font-weight: 700; cursor: pointer; background: #111; color: #fff; }
+    button:disabled { opacity: .55; cursor: default; }
+    .status { margin-top: 9px; opacity: .72; min-height: 1.45em; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="label">Trường test</div>
+    <div class="field" id="testText">Metadata test stays visible here.</div>
+    <button id="generate" type="button">Tạo thumbnail</button>
+    <div class="status" id="status"></div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const button = $("generate");
+    const status = $("status");
+
+    const toolOutput = window.openai?.toolOutput;
+    if (toolOutput?.testText) $("testText").textContent = toolOutput.testText;
+
+    const saved = window.openai?.widgetState;
+    if (saved?.testText) $("testText").textContent = saved.testText;
+
+    window.openai?.setWidgetState?.({ testText: $("testText").textContent });
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      status.textContent = "Đang gửi yêu cầu sang ChatGPT…";
+
+      const message = [
+        "Use the source images and relevant context already present in this conversation.",
+        "Generate exactly ONE standalone 16:9 YouTube thumbnail using ChatGPT's built-in Image Generation.",
+        "Do not restate metadata. Do not create a UI mockup, metadata panel, copy buttons, browser frame, or multiple alternatives.",
+        "Return only the generated thumbnail image."
+      ].join(" ");
+
+      try {
+        if (!window.openai?.sendFollowUpMessage) {
+          throw new Error("sendFollowUpMessage is unavailable in this host");
+        }
+        await window.openai.sendFollowUpMessage({ prompt: message, scrollToBottom: true });
+        status.textContent = "Đã gửi follow-up message.";
+      } catch (error) {
+        status.textContent = `Không gửi được: ${error?.message || error}`;
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
